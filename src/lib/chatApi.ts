@@ -50,12 +50,8 @@ export const checkRateLimit = (): { allowed: boolean; error?: string } => {
     if (usage.lastRequestDate !== today) {
         usage.dailyRequests = 0;
         usage.lastRequestDate = today;
-    }
-
-    // Check daily limit
-    if (usage.dailyRequests >= DAILY_LIMIT) {
-        updateUsageData(usage);
-        return { allowed: false, error: "Daily limit of 200 requests reached." };
+        usage.requestsInWindow = 0;
+        usage.windowStartTime = now;
     }
 
     // Reset window if expired
@@ -66,11 +62,28 @@ export const checkRateLimit = (): { allowed: boolean; error?: string } => {
 
     // Check window limit
     if (usage.requestsInWindow >= MAX_REQUESTS_PER_WINDOW) {
-        updateUsageData(usage);
-        return { allowed: false, error: "Rate limit exceeded. Please wait a moment." };
+        return { allowed: false, error: "Rate limit exceeded. Please wait a moment before sending more messages." };
     }
 
+    // Check daily limit
+    if (usage.dailyRequests >= DAILY_LIMIT) {
+        return { allowed: false, error: "Daily limit reached. Please try again tomorrow." };
+    }
+
+    // Update usage
+    usage.requestsInWindow++;
+    usage.dailyRequests++;
+    updateUsageData(usage);
+
     return { allowed: true };
+};
+
+export const getDailyUsage = () => {
+    const usage = getUsageData();
+    // Reset if new day (just for display consistency)
+    const today = new Date().toDateString();
+    if (usage.lastRequestDate !== today) return 0;
+    return usage.dailyRequests;
 };
 
 export const incrementUsage = () => {
@@ -78,13 +91,6 @@ export const incrementUsage = () => {
     usage.requestsInWindow++;
     usage.dailyRequests++;
     updateUsageData(usage);
-};
-
-export const getDailyUsage = (): number => {
-    const usage = getUsageData();
-    const today = new Date().toDateString();
-    if (usage.lastRequestDate !== today) return 0;
-    return usage.dailyRequests;
 };
 
 const MAX_MESSAGE_LENGTH = 2000;
@@ -99,7 +105,7 @@ const SECURITY_PATTERNS = [
     /developer mode/i
 ];
 
-const validateContent = (content: string) => {
+export const validateContent = (content: string) => {
     if (content.length > MAX_MESSAGE_LENGTH) {
         throw new Error(`Message too long. Please limit your message to ${MAX_MESSAGE_LENGTH} characters.`);
     }

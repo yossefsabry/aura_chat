@@ -1,6 +1,6 @@
-import { useState, useRef, KeyboardEvent } from 'react';
-import { Send, ImagePlus, Mic, Paperclip } from 'lucide-react';
-import { Attachment } from '@/types/chat';
+import { useState, useRef, KeyboardEvent, useEffect } from 'react';
+import { Send, ImagePlus, Mic, Paperclip, X } from 'lucide-react';
+import { Attachment, Message } from '@/types/chat';
 import AttachmentPreview from './AttachmentPreview';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -9,18 +9,33 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 interface ChatInputProps {
   onSend: (content: string, attachments?: Attachment[]) => void;
   disabled?: boolean;
+  replyTo?: Message | null;
+  onCancelReply?: () => void;
 }
 
-const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
+const ChatInput = ({ onSend, disabled, replyTo, onCancelReply }: ChatInputProps) => {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (replyTo && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [replyTo]);
 
   const handleSend = () => {
     if (!message.trim() && attachments.length === 0) return;
-    
-    onSend(message.trim(), attachments.length > 0 ? attachments : undefined);
+
+    let finalMessage = message.trim();
+    if (replyTo) {
+      const replyPrefix = `> Replying to: "${replyTo.content.substring(0, 50)}${replyTo.content.length > 50 ? '...' : ''}"\n\n`;
+      finalMessage = replyPrefix + finalMessage;
+    }
+
+    onSend(finalMessage, attachments.length > 0 ? attachments : undefined);
     setMessage('');
     setAttachments([]);
   };
@@ -57,8 +72,25 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
 
   return (
     <div className="glass rounded-2xl border border-border/50 overflow-hidden">
+      {replyTo && (
+        <div className="flex items-center justify-between px-4 py-2 bg-secondary/50 border-b border-border/50 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 truncate">
+            <span className="font-medium text-primary">Replying to:</span>
+            <span className="truncate max-w-[300px]">{replyTo.content}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 rounded-full hover:bg-background/50"
+            onClick={onCancelReply}
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      )}
+
       <AttachmentPreview attachments={attachments} onRemove={removeAttachment} />
-      
+
       <div className="flex items-end gap-2 p-3">
         {/* Attachment Buttons */}
         <div className="flex items-center gap-1">
@@ -121,10 +153,11 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
 
         {/* Text Input */}
         <Textarea
+          ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type your message..."
+          placeholder={replyTo ? "Type your reply..." : "Type your message..."}
           disabled={disabled}
           className="flex-1 min-h-[44px] max-h-[200px] resize-none bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60 text-sm"
           rows={1}

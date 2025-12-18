@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useChat } from '@/hooks/useChat';
+import { Message } from '@/types/chat';
 import ChatHeader from './ChatHeader';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
@@ -14,43 +15,24 @@ const ChatContainer = () => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isPageLoading, setIsPageLoading] = useState(true);
 
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [inputMessage, setInputMessage] = useState('');
+
+  const handleReply = (message: Message) => {
+    setReplyTo(message);
+    // Focus input logic will be handled in ChatInput via useEffect or ref if needed
+  };
+
+  const handleSendWrapper = (content: string, attachments?: any[]) => {
+    sendMessage(content, attachments);
+    setReplyTo(null);
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Initial page load simulation
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
-
-  // Scroll to top detection for loading older messages
-  const handleScroll = useCallback(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    if (container.scrollTop < 50 && hasOlderMessages && !isLoadingOlder) {
-      loadOlderMessages();
-    }
-  }, [hasOlderMessages, isLoadingOlder, loadOlderMessages]);
-
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
-
-  if (isPageLoading) {
-    return <PageLoader />;
-  }
+  // ... (existing useEffects)
 
   return (
     <div className="flex flex-col h-screen max-h-screen bg-background">
@@ -76,7 +58,11 @@ const ChatContainer = () => {
             {isLoadingOlder && <ScrollLoader />}
 
             {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              <MessageBubble
+                key={message.id}
+                message={message}
+                onReply={handleReply}
+              />
             ))}
             {isLoading && <TypingIndicator />}
             <div ref={messagesEndRef} />
@@ -87,7 +73,12 @@ const ChatContainer = () => {
       {/* Input Area */}
       <div className="p-4 md:p-6">
         <div className="max-w-4xl mx-auto">
-          <ChatInput onSend={sendMessage} disabled={isLoading} />
+          <ChatInput
+            onSend={handleSendWrapper}
+            disabled={isLoading}
+            replyTo={replyTo}
+            onCancelReply={() => setReplyTo(null)}
+          />
 
         </div>
       </div>
