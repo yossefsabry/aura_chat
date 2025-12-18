@@ -102,7 +102,10 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           accept="image/*"
           multiple
           className="hidden"
-          onChange={(e) => handleFileSelect(e.target.files, 'image')}
+          onChange={(e) => {
+            handleFileSelect(e.target.files, 'image');
+            e.target.value = '';
+          }}
         />
         <input
           ref={audioInputRef}
@@ -110,7 +113,10 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           accept="audio/*"
           multiple
           className="hidden"
-          onChange={(e) => handleFileSelect(e.target.files, 'audio')}
+          onChange={(e) => {
+            handleFileSelect(e.target.files, 'audio');
+            e.target.value = '';
+          }}
         />
 
         {/* Text Input */}
