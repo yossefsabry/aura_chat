@@ -9,7 +9,7 @@ import PageLoader from './PageLoader';
 import ScrollLoader from './ScrollLoader';
 
 const ChatContainer = () => {
-  const { messages, isLoading, sendMessage, clearMessages, loadOlderMessages, hasOlderMessages, isLoadingOlder } = useChat();
+  const { messages, isLoading, sendMessage, clearMessages, loadOlderMessages, hasOlderMessages, isLoadingOlder, dailyUsage } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -61,10 +61,10 @@ const ChatContainer = () => {
       </div>
 
       {/* Header */}
-      <ChatHeader onClear={clearMessages} messageCount={messages.length} />
+      <ChatHeader onClear={clearMessages} messageCount={messages.length} dailyUsage={dailyUsage} />
 
       {/* Messages Area */}
-      <div 
+      <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto scrollbar-thin relative"
       >
@@ -74,7 +74,7 @@ const ChatContainer = () => {
           <div className="max-w-4xl mx-auto py-4">
             {/* Scroll to top loader */}
             {isLoadingOlder && <ScrollLoader />}
-            
+
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
@@ -88,9 +88,7 @@ const ChatContainer = () => {
       <div className="p-4 md:p-6">
         <div className="max-w-4xl mx-auto">
           <ChatInput onSend={sendMessage} disabled={isLoading} />
-          <p className="text-center text-xs text-muted-foreground mt-3">
-            Demo mode • Connect your AI model for real responses
-          </p>
+
         </div>
       </div>
     </div>

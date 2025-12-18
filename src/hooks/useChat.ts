@@ -1,16 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Message, Attachment } from '@/types/chat';
-
-const mockResponses = [
-  "That's a great question! I'm here to help you with anything you need. Feel free to ask me about coding, design, or any topic you're curious about.",
-  "I see you've shared some content with me. This is really interesting! In a real implementation, I would analyze this and provide detailed insights.",
-  "Thanks for reaching out! I'm currently in demo mode, but once connected to a real API, I'll be able to provide much more sophisticated responses.",
-  "Excellent point! Let me think about that... In the meantime, know that I'm designed to be helpful, harmless, and honest.",
-  "I appreciate you testing out this chat interface! The design looks pretty sleek, doesn't it? 😊",
-  "That's fascinating! I'd love to dive deeper into this topic. What specific aspects would you like to explore?",
-  "Great observation! Here's what I think about it based on my training data and reasoning capabilities.",
-  "I'm processing your request... Just kidding! But when connected to a real model, I'll provide thoughtful, contextual responses.",
-];
+import { sendMessageToApi, getDailyUsage } from '@/lib/chatApi';
+import { toast } from 'sonner';
 
 const mockOlderMessages: Message[] = [
   {
@@ -45,10 +36,7 @@ export const useChat = () => {
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [hasOlderMessages, setHasOlderMessages] = useState(true);
   const [olderLoadCount, setOlderLoadCount] = useState(0);
-
-  const generateMockResponse = useCallback((): string => {
-    return mockResponses[Math.floor(Math.random() * mockResponses.length)];
-  }, []);
+  const [dailyUsage, setDailyUsage] = useState(getDailyUsage());
 
   const sendMessage = useCallback(async (content: string, attachments?: Attachment[]) => {
     const userMessage: Message = {
@@ -62,19 +50,31 @@ export const useChat = () => {
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
+    try {
+      // Prepare context: include previous messages + new user message
+      const contextMessages = [...messages, userMessage];
 
-    const assistantMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: generateMockResponse(),
-      timestamp: new Date(),
-    };
+      const responseContent = await sendMessageToApi(contextMessages);
+      setDailyUsage(getDailyUsage()); // Update usage after success
 
-    setMessages(prev => [...prev, assistantMessage]);
-    setIsLoading(false);
-  }, [generateMockResponse]);
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: responseContent,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error: any) {
+      console.error("Chat Error:", error);
+      toast.error(error.message || "Failed to send message");
+
+      // Optional: Remove the user message if it failed? 
+      // For now, let's keep it but maybe mark as error (not implemented in UI yet)
+    } finally {
+      setIsLoading(false);
+    }
+  }, [messages]);
 
   const loadOlderMessages = useCallback(async () => {
     if (isLoadingOlder || !hasOlderMessages) return;
@@ -114,5 +114,6 @@ export const useChat = () => {
     sendMessage,
     clearMessages,
     loadOlderMessages,
+    dailyUsage,
   };
 };

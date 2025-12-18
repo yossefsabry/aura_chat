@@ -5,9 +5,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 interface ChatHeaderProps {
   onClear: () => void;
   messageCount: number;
+  dailyUsage: number;
 }
 
-const ChatHeader = ({ onClear, messageCount }: ChatHeaderProps) => {
+const ChatHeader = ({ onClear, messageCount, dailyUsage }: ChatHeaderProps) => {
   return (
     <header className="glass border-b border-border/50 px-4 py-3 md:px-6 md:py-4">
       <div className="flex items-center justify-between">
@@ -18,13 +19,9 @@ const ChatHeader = ({ onClear, messageCount }: ChatHeaderProps) => {
           <div>
             <h1 className="font-semibold text-foreground flex items-center gap-2">
               AI Assistant
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                <Sparkles className="w-3 h-3" />
-                Demo
-              </span>
             </h1>
             <p className="text-xs text-muted-foreground">
-              {messageCount > 0 ? `${messageCount} messages` : 'Ready to chat'}
+              {messageCount > 0 ? `${messageCount} messages` : 'Ready to chat'} • {dailyUsage}/200 daily requests
             </p>
           </div>
         </div>
